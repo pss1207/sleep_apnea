@@ -65,9 +65,6 @@ def get_qrs_amp(ecg, qrs):
 
     return qrs_amp
 
-'''
-Train
-'''
 MARGIN = 10
 FS_INTP = 4
 MAX_HR = 300.0
