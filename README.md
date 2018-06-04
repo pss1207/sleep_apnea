@@ -14,9 +14,9 @@ Keas implementation for ECG sleep apnea detection
 - .apn files: binary annotation files containing an annotation for each minute of each recording the presence or absence of apnea
 - .qrs files: machine generated binary annotation files, made using [sqrs125](https://physionet.org/physiotools/wag/sqrs-1.htm)
 
-'''bash
+```bash
 wget -r -np http://www.physionet.org/physiobank/database/apnea-ecg/
-'''
+```
 
 ## Getting Started
 
