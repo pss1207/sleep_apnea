@@ -156,22 +156,7 @@ def run_network(model=None, data=None):
         print ('Training duration (s) : ', time.time() - global_start_time)
         return model
 
-    try:
-        plt.figure(1)
-        plt.subplot(311)
-        plt.title("Actual Signal w/Anomalies")
-        plt.plot(y_train[:len(y_train)], 'b')
-        plt.subplot(312)
-        plt.title("Predicted Signal")
-        #plt.plot(predicted[:len(y_train)], 'g')
-        plt.subplot(313)
-        plt.title("Squared Error")
-        #mse = ((y_test - predicted) ** 2)
-        #plt.plot(mse, 'r')
-        plt.show()
-    except Exception as e:
-        print("plotting exception")
-        print(str(e))
+
     print ('Training duration (s) : ', time.time() - global_start_time)
 
     return model
