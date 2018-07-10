@@ -1,9 +1,14 @@
 # ECG Sleep Apnea Detection
 
-Keas implementation for ECG sleep apnea detection
+Keras implementation for ECG sleep apnea detection
 
 ## Prerequisites
-- Keras
+- Keras: the 'Merge' layer is deprecated in Keras versions newer than 2.0. This code maintains the 'Merge' layer, and therefore needs the older versions of Keras. To install Keras version 2.0 (it still runs the 'Merge' layer):
+
+```bash
+pip install keras==2.0
+```
+
 - [ECG Sleep Apnea Dataset](https://physionet.org/physiobank/database/apnea-ecg/)
 
 ## ECG Sleep Apnea Dataset

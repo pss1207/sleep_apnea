@@ -14,7 +14,7 @@ from keras.layers.convolutional import Conv1D, MaxPooling1D
 
 # Hyper-parameters
 sequence_length = 240
-epochs = 1000
+epochs = int(input('Enter Number of Epochs (or enter default 1000): '))
 FS = 100.0
 
 class LossHistory(keras.callbacks.Callback):

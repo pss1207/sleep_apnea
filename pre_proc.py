@@ -30,7 +30,8 @@ def interp_cubic_spline_qrs(qrs_index, qrs_amp, fs):
     qrs_interp = interpolate.splev(time_qrs_interp, tck, der=0)
     return time_qrs_interp, qrs_interp
 
-data_path = '/media/hdd/data/apnea/'
+#data_path = '/media/hdd/data/apnea/'
+data_path = '/Users/carandangc/Desktop/Sleep_Studies/data/www.physionet.org/physiobank/database/apnea-ecg/'
 train_data_name = ['a01', 'a02', 'a03', 'a04', 'a05',
              'a06', 'a07', 'a08', 'a09', 'a10',
              'a11', 'a12', 'a13', 'a14', 'a15',
