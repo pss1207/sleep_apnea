@@ -4,6 +4,7 @@ import numpy as np
 from hrv.filters import quotient, moving_median
 from scipy import interpolate
 from tqdm import tqdm
+import os
 FS = 100.0
 
 # From https://github.com/rhenanbartels/hrv/blob/develop/hrv/classical.py
@@ -30,16 +31,16 @@ def interp_cubic_spline_qrs(qrs_index, qrs_amp, fs):
     qrs_interp = interpolate.splev(time_qrs_interp, tck, der=0)
     return time_qrs_interp, qrs_interp
 
-#data_path = '/media/hdd/data/apnea/'
-data_path = '/Users/carandangc/Desktop/Sleep_Studies/data/www.physionet.org/physiobank/database/apnea-ecg/'
+data_path = './data/'
 train_data_name = ['a01', 'a02', 'a03', 'a04', 'a05',
              'a06', 'a07', 'a08', 'a09', 'a10',
              'a11', 'a12', 'a13', 'a14', 'a15',
-             'a16', 'a17', 'a18', 'a19', 'a20',
-             'b01', 'b02', 'b03', 'b04', 'b05',
+             'a16', 'a17', 'a18', 'a19',
+             'b01', 'b02', 'b03', 'b04',
              'c01', 'c02', 'c03', 'c04', 'c05',
-             'c06', 'c07', 'c08', 'c09', 'c10'
+             'c06', 'c07', 'c08', 'c09',
              ]
+test_data_name = ['a20','b05','c10']
 age = [51, 38, 54, 52, 58,
        63, 44, 51, 52, 58,
        58, 52, 51, 51, 60,
@@ -72,12 +73,13 @@ MAX_HR = 300.0
 MIN_HR = 20.0
 MIN_RRI = 1.0 / (MAX_HR / 60.0) * 1000
 MAX_RRI = 1.0 / (MIN_HR / 60.0) * 1000
-input_array = []
-label_array = []
+train_input_array = []
+train_label_array = []
+
 for data_index in range(len(train_data_name)):
     print (train_data_name[data_index])
-    win_num = len(wfdb.rdann(data_path + train_data_name[data_index], 'apn').symbol)
-    signals, fields = wfdb.rdsamp(data_path + train_data_name[data_index])
+    win_num = len(wfdb.rdann(os.path.join(data_path,train_data_name[data_index]), 'apn').symbol)
+    signals, fields = wfdb.rdsamp(os.path.join(data_path,train_data_name[data_index]))
     for index in tqdm(range(1, win_num)):
         samp_from = index * 60 * FS # 60 seconds
         samp_to = samp_from + 60 * FS  # 60 seconds
@@ -89,35 +91,83 @@ for data_index in range(len(train_data_name)):
 
         rri = np.diff(qrs_ann)
         rri_ms = rri.astype('float') / FS * 1000.0
+        try:
+            rri_filt = moving_median(rri_ms)
 
-        rri_filt = moving_median(rri_ms)
-        qrs_filt = moving_median(qrs_amp)
-        if rri_filt.shape[0] > 5 and (np.min(rri_filt) >= MIN_RRI and np.max(rri_filt) <= MAX_RRI):
-            time_intp, rri_intp = interp_cubic_spline(rri_filt, FS_INTP)
-            qrs_time_intp, qrs_intp = interp_cubic_spline_qrs(qrs_ann, qrs_amp, FS_INTP)
-            rri_intp = rri_intp[(time_intp >= MARGIN) & (time_intp < (60+MARGIN))]
-            qrs_intp = qrs_intp[(qrs_time_intp >= MARGIN) & (qrs_time_intp < (60 + MARGIN))]
-            #time_intp = time_intp[(time_intp >= MARGIN) & (time_intp < (60+MARGIN))]
+            if len(rri_filt) > 5 and (np.min(rri_filt) >= MIN_RRI and np.max(rri_filt) <= MAX_RRI):
+                time_intp, rri_intp = interp_cubic_spline(rri_filt, FS_INTP)
+                qrs_time_intp, qrs_intp = interp_cubic_spline_qrs(qrs_ann, qrs_amp, FS_INTP)
+                rri_intp = rri_intp[(time_intp >= MARGIN) & (time_intp < (60+MARGIN))]
+                qrs_intp = qrs_intp[(qrs_time_intp >= MARGIN) & (qrs_time_intp < (60 + MARGIN))]
+                #time_intp = time_intp[(time_intp >= MARGIN) & (time_intp < (60+MARGIN))]
 
-            if len(rri_intp) != (FS_INTP * 60):
-                skip = 1
-            else:
-                skip = 0
-
-            if skip == 0:
-                rri_intp = rri_intp - np.mean(rri_intp)
-                qrs_intp = qrs_intp - np.mean(qrs_intp)
-                if apn_ann[0] == 'N': # Normal
-                    label = 0.0
-                elif apn_ann[0] == 'A': # Apnea
-                    label = 1.0
+                if len(rri_intp) != (FS_INTP * 60):
+                    skip = 1
                 else:
-                    label = 2.0
+                    skip = 0
 
-                input_array.append([rri_intp, qrs_intp, age[data_index], sex[data_index]])
-                label_array.append(label)
-        else:
-            aaa=1
+                if skip == 0:
+                    rri_intp = rri_intp - np.mean(rri_intp)
+                    qrs_intp = qrs_intp - np.mean(qrs_intp)
+                    if apn_ann[0] == 'N': # Normal
+                        label = 0.0
+                    elif apn_ann[0] == 'A': # Apnea
+                        label = 1.0
+                    else:
+                        label = 2.0
 
-np.save('train_input.npy', input_array)
-np.save('train_label.npy', label_array)
+                    train_input_array.append([rri_intp, qrs_intp, age[data_index], sex[data_index]])
+                    train_label_array.append(label)
+        except:
+            hrv_module_error = 1
+np.save('train_input.npy', train_input_array)
+np.save('train_label.npy', train_label_array)
+
+test_input_array = []
+test_label_array = []
+for data_index in range(len(test_data_name)):
+    print (test_data_name[data_index])
+    win_num = len(wfdb.rdann(os.path.join(data_path,test_data_name[data_index]), 'apn').symbol)
+    signals, fields = wfdb.rdsamp(os.path.join(data_path,test_data_name[data_index]))
+    for index in tqdm(range(1, win_num)):
+        samp_from = index * 60 * FS # 60 seconds
+        samp_to = samp_from + 60 * FS  # 60 seconds
+
+        qrs_ann = wfdb.rdann(data_path + test_data_name[data_index], 'qrs', sampfrom=samp_from - (MARGIN*100), sampto=samp_to + (MARGIN*100)).sample
+        apn_ann = wfdb.rdann(data_path + test_data_name[data_index], 'apn', sampfrom=samp_from, sampto=samp_to-1).symbol
+
+        qrs_amp = get_qrs_amp(signals, qrs_ann)
+
+        rri = np.diff(qrs_ann)
+        rri_ms = rri.astype('float') / FS * 1000.0
+        try:
+            rri_filt = moving_median(rri_ms)
+
+            if len(rri_filt) > 5 and (np.min(rri_filt) >= MIN_RRI and np.max(rri_filt) <= MAX_RRI):
+                time_intp, rri_intp = interp_cubic_spline(rri_filt, FS_INTP)
+                qrs_time_intp, qrs_intp = interp_cubic_spline_qrs(qrs_ann, qrs_amp, FS_INTP)
+                rri_intp = rri_intp[(time_intp >= MARGIN) & (time_intp < (60+MARGIN))]
+                qrs_intp = qrs_intp[(qrs_time_intp >= MARGIN) & (qrs_time_intp < (60 + MARGIN))]
+                #time_intp = time_intp[(time_intp >= MARGIN) & (time_intp < (60+MARGIN))]
+
+                if len(rri_intp) != (FS_INTP * 60):
+                    skip = 1
+                else:
+                    skip = 0
+
+                if skip == 0:
+                    rri_intp = rri_intp - np.mean(rri_intp)
+                    qrs_intp = qrs_intp - np.mean(qrs_intp)
+                    if apn_ann[0] == 'N': # Normal
+                        label = 0.0
+                    elif apn_ann[0] == 'A': # Apnea
+                        label = 1.0
+                    else:
+                        label = 2.0
+
+                    test_input_array.append([rri_intp, qrs_intp, age[data_index], sex[data_index]])
+                    test_label_array.append(label)
+        except:
+            hrv_module_error = 1
+np.save('test_input.npy', test_input_array)
+np.save('test_label.npy', test_label_array)

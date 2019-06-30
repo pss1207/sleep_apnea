@@ -40,17 +40,13 @@ def split_data(X):
     return np.array(X1).astype('float64'), np.array(X2).astype('float64')
 
 def get_data():
-    X = np.load('train_input.npy')
-    y = np.load('train_label.npy')
+    X_train = np.load('train_input.npy')
+    y_train = np.load('train_label.npy')
 
+    X_test = np.load('test_input.npy')
+    y_test = np.load('test_label.npy')
 
-
-    #X = X.astype('float64')
-    #y = y.astype('float64')
-
-    #X = z_norm(X)
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
     '''
     X_train = X_train[:, 0, :]
     X_test = X_test[:, 0, :]
