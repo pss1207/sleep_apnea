@@ -40,11 +40,11 @@ def split_data(X):
     return np.array(X1).astype('float64'), np.array(X2).astype('float64')
 
 def get_data():
-    X_train = np.load('train_input.npy')
-    y_train = np.load('train_label.npy')
+    X_train = np.load('train_input.npy', allow_pickle=True)
+    y_train = np.load('train_label.npy', allow_pickle=True)
 
-    X_test = np.load('test_input.npy')
-    y_test = np.load('test_label.npy')
+    X_test = np.load('test_input.npy', allow_pickle=True)
+    y_test = np.load('test_label.npy', allow_pickle=True)
 
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
     '''
