@@ -1,28 +1,17 @@
-import keras
+
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from keras.layers.core import Dense, Activation, Dropout
-from keras.layers.recurrent import LSTM
-from keras.models import Sequential
-import keras.backend as K
+import tensorflow as tf
+
 import wfdb
 from sklearn.utils import class_weight
 from sklearn.model_selection import train_test_split
-from keras.layers import Merge
-from keras.layers.convolutional import Conv1D, MaxPooling1D
 
 # Hyper-parameters
 sequence_length = 240
 epochs = int(input('Enter Number of Epochs (or enter default 1000): '))
 FS = 100.0
-
-class LossHistory(keras.callbacks.Callback):
-    def init(self):
-        self.losses = []
-
-    def on_epoch_end(self, batch, logs={}):
-        self.losses.append(logs.get('loss'))
 
 def z_norm(result):
     result_mean = np.mean(result)
@@ -66,40 +55,33 @@ def get_data():
 
 
 def build_model():
-    model1 = Sequential()
+    
     layers = {'input': 2, 'hidden1': 256, 'hidden2': 256, 'hidden3': 256, 'output': 1}
-    model1.add(LSTM(layers['hidden1'],
-                   input_shape= (sequence_length, layers['input']),
+    x1 = tf.keras.layers.Input(shape=(sequence_length, layers['input']))
+    m1 = tf.keras.layers.LSTM(layers['hidden1'],                   
                     recurrent_dropout=0.5,
-                   return_sequences=True))
-
-    model1.add(LSTM(
+                   return_sequences=True)(x1)
+    m1 = tf.keras.layers.LSTM(
             layers['hidden2'],
             recurrent_dropout=0.5,
-            return_sequences=True))
+            return_sequences=True)(m1)
 
-    model1.add(LSTM(
+    m1 = tf.keras.layers.LSTM(
             layers['hidden3'],
             recurrent_dropout=0.5,
-            return_sequences=False))
+            return_sequences=False)(m1)
 
-    model1.summary()
+    x2 = tf.keras.layers.Input(shape=(2,))
+    m2 = tf.keras.layers.Dense(32)(x2)
 
-    model2 = Sequential()
-    model2.add(Dense(32, input_dim=2))
+    #merged = Merge([model1, model2], mode='concat')
+    merged = tf.keras.layers.Concatenate(axis=1)([m1, m2])
 
-    model2.summary()
-
-    merged = Merge([model1, model2], mode='concat')
-
-    model = Sequential()
-
-    model.add(merged)
-    model.add(Dense(8))
-    model.add(Dense(
-        output_dim=layers['output'],
-        kernel_initializer='normal'))
-    model.add(Activation("sigmoid"))
+    out = tf.keras.layers.Dense(8)(merged)
+    out = tf.keras.layers.Dense(layers['output'], kernel_initializer='normal')(out)
+    out = tf.keras.layers.Activation("sigmoid")(out)
+    
+    model = tf.keras.models.Model(inputs=[x1, x2], outputs=[out])
 
     start = time.time()
     model.compile(loss="binary_crossentropy", optimizer="adam",
@@ -128,10 +110,9 @@ def run_network(model=None, data=None):
 
     try:
         print("Training")
-        history = LossHistory()
-        history.init()
 
-        model.fit([X_train1, X_train2], y_train, epochs=epochs, batch_size=256, callbacks=[history], validation_split=0.1, class_weight=class_w)
+        class_w = {i : class_w[i] for i in range(2)}
+        history = model.fit([X_train1, X_train2], y_train, epochs=epochs, batch_size=256, validation_split=0.1, class_weight=class_w)
 
         import matplotlib.pyplot as plt
         '''
