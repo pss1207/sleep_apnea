@@ -3,14 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import tensorflow as tf
-
+import pickle
 import wfdb
 from sklearn.utils import class_weight
 from sklearn.model_selection import train_test_split
 
 # Hyper-parameters
 sequence_length = 240
-epochs = int(input('Enter Number of Epochs (or enter default 1000): '))
+epochs = 1000#int(input('Enter Number of Epochs (or enter default 1000): '))
 FS = 100.0
 
 def z_norm(result):
@@ -29,11 +29,19 @@ def split_data(X):
     return np.array(X1).astype('float64'), np.array(X2).astype('float64')
 
 def get_data():
-    X_train = np.load('train_input.npy', allow_pickle=True)
-    y_train = np.load('train_label.npy', allow_pickle=True)
+    with open('train_input.pickle','rb') as f: 
+        X_train = np.asarray(pickle.load(f))
+    with open('train_label.pickle','rb') as f: 
+        y_train = np.asarray(pickle.load(f))
+    with open('val_input.pickle','rb') as f: 
+        X_val = np.asarray(pickle.load(f))
+    with open('val_label.pickle','rb') as f: 
+        y_val = np.asarray(pickle.load(f))
+    with open('test_input.pickle','rb') as f: 
+        X_test = np.asarray(pickle.load(f))
+    with open('test_label.pickle','rb') as f: 
+        y_test = np.asarray(pickle.load(f))
 
-    X_test = np.load('test_input.npy', allow_pickle=True)
-    y_test = np.load('test_label.npy', allow_pickle=True)
 
     #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
     '''
@@ -43,14 +51,15 @@ def get_data():
     X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
     '''
     X_train1, X_train2 = split_data(X_train)
+    X_val1, X_val2 = split_data(X_val)
     X_test1, X_test2 = split_data(X_test)
 
     X_train1 = np.transpose(X_train1, (0, 2, 1))
     #X_train2 = np.reshape(X_train2, (X_train2.shape[0], X_train2.shape[1], 1))
     X_test1 = np.transpose(X_test1, (0, 2, 1))
     #X_test2 = np.reshape(X_test2, (X_test2.shape[0], X_test2.shape[1], 1))
-
-    return X_train1, X_train2, y_train, X_test1, X_test2, y_test
+    X_val1 = np.transpose(X_val1, (0, 2, 1))
+    return X_train1, X_train2, y_train, X_val1, X_val2, y_val, X_test1, X_test2, y_test
 
 
 
@@ -97,11 +106,11 @@ def run_network(model=None, data=None):
 
     print ('\nData Loaded. Compiling...\n')
     print('Loading data... ')
-    X_train1, X_train2, y_train, X_test1, X_test2, y_test = get_data()
+    X_train1, X_train2, y_train, X_val1, X_val2, y_val, X_test1, X_test2, y_test = get_data()
 
-    class_w = class_weight.compute_class_weight('balanced',
-                                                     np.unique(y_train),
-                                                     y_train)
+    class_w = class_weight.compute_class_weight(class_weight='balanced',
+                                                     classes=np.unique(y_train),
+                                                     y=y_train)
 
     print (class_w)
 
@@ -112,7 +121,11 @@ def run_network(model=None, data=None):
         print("Training")
 
         class_w = {i : class_w[i] for i in range(2)}
-        history = model.fit([X_train1, X_train2], y_train, epochs=epochs, batch_size=256, validation_split=0.1, class_weight=class_w)
+        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)
+        history = model.fit([X_train1, X_train2], y_train, 
+                            validation_data=([X_val1, X_val2], y_val),
+                            callbacks=[callback],
+                             epochs=epochs, batch_size=256, class_weight=class_w)
 
         import matplotlib.pyplot as plt
         '''
